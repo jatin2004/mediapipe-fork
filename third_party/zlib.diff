@@ -1,52 +1,148 @@
-diff -ruN a/contrib/minizip/ioapi.h b/contrib/minizip/ioapi.h
---- a/contrib/minizip/ioapi.h
+--- a/contrib/minizip/ioapi.hdiff -ruN a/contrib/minizip/ioapi.h b/contrib/minizip/ioapi.hdiff -ruN a/contrib/minizip/ioapi.h b/contrib/minizip/ioapi.h
+
 +++ b/contrib/minizip/ioapi.h
-@@ -21,7 +21,7 @@
+
+@@ -21,7 +21,7 @@--- a/contrib/minizip/ioapi.h--- a/contrib/minizip/ioapi.h
+
  #ifndef _ZLIBIOAPI64_H
- #define _ZLIBIOAPI64_H
+
+ #define _ZLIBIOAPI64_H+++ b/contrib/minizip/ioapi.h+++ b/contrib/minizip/ioapi.h
+
  
--#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
+
+-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))@@ -21,7 +21,7 @@@@ -21,7 +21,7 @@
+
 +#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
- 
+
+  #ifndef _ZLIBIOAPI64_H #ifndef _ZLIBIOAPI64_H
+
    // Linux needs this to support file operation on files larger then 4+GB
-   // But might need better if/def to select just the platforms that needs them.
-diff -ruN a/contrib/minizip/miniunz.c b/contrib/minizip/miniunz.c
+
+   // But might need better if/def to select just the platforms that needs them. #define _ZLIBIOAPI64_H #define _ZLIBIOAPI64_H
+
 --- a/contrib/minizip/miniunz.c
-+++ b/contrib/minizip/miniunz.c
+
++++ b/contrib/minizip/miniunz.c  
+
 @@ -12,7 +12,7 @@
-          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
+
+          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
+
  */
- 
+
+ +#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))+#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
+
 -#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
-+#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
+
++#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))  
+
          #ifndef __USE_FILE_OFFSET64
-                 #define __USE_FILE_OFFSET64
+
+                 #define __USE_FILE_OFFSET64   // Linux needs this to support file operation on files larger then 4+GB   // Linux needs this to support file operation on files larger then 4+GB
+
          #endif
-@@ -27,7 +27,7 @@
+
+@@ -27,7 +27,7 @@   // But might need better if/def to select just the platforms that needs them.   // But might need better if/def to select just the platforms that needs them.
+
          #endif
- #endif
+
+ #endifdiff -ruN a/contrib/minizip/miniunz.c b/contrib/minizip/miniunz.cdiff -ruN a/contrib/minizip/miniunz.c b/contrib/minizip/miniunz.c
+
  
--#ifdef __APPLE__
+
+-#ifdef __APPLE__--- a/contrib/minizip/miniunz.c--- a/contrib/minizip/miniunz.c
+
 +#if defined(__APPLE__) || defined(IOAPI_NO_64)
- // In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions
+
+ // In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions+++ b/contrib/minizip/miniunz.c+++ b/contrib/minizip/miniunz.c
+
  #define FOPEN_FUNC(filename, mode) fopen(filename, mode)
- #define FTELLO_FUNC(stream) ftello(stream)
+
+ #define FTELLO_FUNC(stream) ftello(stream)@@ -12,7 +12,7 @@@@ -12,7 +12,7 @@
+
 @@ -50,6 +50,7 @@
- # include <direct.h>
+
+ # include <direct.h>          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )          Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
+
  # include <io.h>
- #else
+
+ #else */ */
+
 +# include <sys/stat.h>
- # include <unistd.h>
+
+ # include <unistd.h>  
+
  # include <utime.h>
- #endif
-diff -ruN a/contrib/minizip/minizip.c b/contrib/minizip/minizip.c
+
+ #endif-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
+
 --- a/contrib/minizip/minizip.c
-+++ b/contrib/minizip/minizip.c
+
++++ b/contrib/minizip/minizip.c+#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))+#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
+
 @@ -13,7 +13,7 @@
- */
+
+ */         #ifndef __USE_FILE_OFFSET64         #ifndef __USE_FILE_OFFSET64
+
  
- 
+
+                  #define __USE_FILE_OFFSET64                 #define __USE_FILE_OFFSET64
+
 -#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
+
++#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))         #endif         #endif
+
+@@ -27,7 +27,7 @@@@ -27,7 +27,7 @@
+
+         #endif         #endif
+
+ #endif #endif
+
+  
+
+-#ifdef __APPLE__-#ifdef __APPLE__
+
++#if defined(__APPLE__) || defined(IOAPI_NO_64)+#if defined(__APPLE__) || defined(IOAPI_NO_64)
+
+ // In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions // In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions
+
+ #define FOPEN_FUNC(filename, mode) fopen(filename, mode) #define FOPEN_FUNC(filename, mode) fopen(filename, mode)
+
+ #define FTELLO_FUNC(stream) ftello(stream) #define FTELLO_FUNC(stream) ftello(stream)
+
+@@ -50,6 +50,7 @@@@ -50,6 +50,7 @@
+
+ # include <direct.h> # include <direct.h>
+
+ # include <io.h> # include <io.h>
+
+ #else #else
+
++# include <sys/stat.h>+# include <sys/stat.h>
+
+ # include <unistd.h> # include <unistd.h>
+
+ # include <utime.h> # include <utime.h>
+
+ #endif #endif
+
+diff -ruN a/contrib/minizip/minizip.c b/contrib/minizip/minizip.cdiff -ruN a/contrib/minizip/minizip.c b/contrib/minizip/minizip.c
+
+--- a/contrib/minizip/minizip.c--- a/contrib/minizip/minizip.c
+
++++ b/contrib/minizip/minizip.c+++ b/contrib/minizip/minizip.c
+
+@@ -13,7 +13,7 @@@@ -13,7 +13,7 @@
+
+ */ */
+
+  
+
+  
+
+-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))-#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__))
+
++#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))+#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
 +#if (!defined(_WIN32)) && (!defined(WIN32)) && (!defined(__APPLE__)) && (!defined(__ANDROID__))
          #ifndef __USE_FILE_OFFSET64
                  #define __USE_FILE_OFFSET64

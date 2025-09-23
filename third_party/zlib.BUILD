@@ -6,6 +6,20 @@ COPTS = select({
     # Don't pass any of the default flags as the VS Compiler does not support
     # these settings.
     "@platforms//os:windows": [],
+    "@platforms//os:macos": [
+        "-Wno-dangling-else",
+        "-Wno-format",
+        "-Wno-implicit-function-declaration",
+        "-Wno-incompatible-pointer-types",
+        "-Wno-incompatible-pointer-types-discards-qualifiers",
+        "-Wno-parentheses",
+        "-Wno-macro-redefined",
+        "-Wno-deprecated-non-prototype",
+        "-DIOAPI_NO_64",
+        "-UMAC",
+        "-UMACOS",
+        "-Dfdopen=fdopen",  # Prevent fdopen macro redefinition
+    ],
     "//conditions:default": [
         "-Wno-dangling-else",
         "-Wno-format",

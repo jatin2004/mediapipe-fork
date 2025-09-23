@@ -2,8 +2,10 @@ package com.google.mediapipe.tasks.genai.llminference;
 
 
 import android.content.Context;
+import android.os.Environment;
 import com.google.auto.value.AutoValue;
 import com.google.common.util.concurrent.ListenableFuture;
+import java.io.File;
 import com.google.mediapipe.tasks.genai.llminference.jni.proto.LlmOptionsProto.LlmModelSettings;
 import com.google.mediapipe.tasks.genai.llminference.jni.proto.LlmOptionsProto.LlmModelSettings.LlmPreferredBackend;
 import java.util.Collections;
@@ -41,11 +43,17 @@ public class LlmInference implements AutoCloseable {
 
   /** Creates an LlmInference Task. */
   public static LlmInference createFromOptions(Context context, LlmInferenceOptions options) {
+    // Create shared LLM cache directory that won't be cleared by system
+    File sharedCacheDir = new File(Environment.getExternalStorageDirectory(), "shared_llm_cache");
+    if (!sharedCacheDir.exists()) {
+      sharedCacheDir.mkdirs();
+    }
+    
     // Configure LLM model settings.
     LlmModelSettings.Builder modelSettings =
         LlmModelSettings.newBuilder()
             .setModelPath(options.modelPath())
-            .setCacheDir(context.getCacheDir().getAbsolutePath())
+            .setCacheDir(sharedCacheDir.getAbsolutePath())
             .setNumDecodeStepsPerSync(NUM_DECODE_STEPS_PER_SYNC)
             .setMaxTokens(options.maxTokens())
             .setMaxTopK(options.maxTopK())

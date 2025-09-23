@@ -84,7 +84,7 @@ each project.
         --copt=-fomit-frame-pointer \
         --copt=-DABSL_MIN_LOG_LEVEL=2 \
         --linkopt=-Wl,--gc-sections,--strip-all \
-        //mediapipe/examples/android/src/java/com/google/mediapipe/apps/aar_example:mediapipe_face_detection.aar
+        //mediapipe/tasks/java/com/google/mediapipe/tasks/genai:tasks_genai_aar_library
 
     # It should print:
     # Target //mediapipe/examples/android/src/java/com/google/mediapipe/apps/aar_example:mediapipe_face_detection.aar up-to-date:

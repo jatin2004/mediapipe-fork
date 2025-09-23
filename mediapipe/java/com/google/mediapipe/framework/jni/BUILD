@@ -152,6 +152,7 @@ cc_library(
     deps = [
         ":class_registry",
         "//mediapipe/framework/port:status",
+        "//third_party/jni_headers:jni_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/log:absl_log",
         "@com_google_absl//absl/synchronization",
@@ -168,6 +169,7 @@ cc_library(
     srcs = ["class_registry.cc"],
     hdrs = ["class_registry.h"],
     deps = [
+        "//third_party/jni_headers:jni_headers",
         "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",

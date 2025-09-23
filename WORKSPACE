@@ -118,12 +118,6 @@ http_archive(
 http_archive(
     name = "zlib",
     build_file = "@//third_party:zlib.BUILD",
-    patch_args = [
-        "-p1",
-    ],
-    patches = [
-        "@//third_party:zlib.diff",
-    ],
     sha256 = "b3a24de97a8fdbc835b9833169501030b8977031bcb54b3b3ac13740f846ab30",
     strip_prefix = "zlib-1.2.13",
     url = "http://zlib.net/fossils/zlib-1.2.13.tar.gz",
@@ -909,4 +903,15 @@ http_archive(
     sha256 = "2fe28173428f8eebf2aa8a665bad32136086cc065f50c7154678a96250d1cde1",
     strip_prefix = "skia-226ae9d866748a2e68b6dbf114b37129c380a298/include/config",
     urls = ["https://github.com/google/skia/archive/226ae9d866748a2e68b6dbf114b37129c380a298.zip"],
+)
+
+android_sdk_repository(
+    name = "androidsdk",
+    path = "/Users/JTELANG/Library/Android/sdk"
+)
+
+android_ndk_repository(
+    name = "androidndk",
+    api_level = 21,
+    path = "/Users/JTELANG/Library/Android/sdk/ndk/29.0.14033849"
 )
