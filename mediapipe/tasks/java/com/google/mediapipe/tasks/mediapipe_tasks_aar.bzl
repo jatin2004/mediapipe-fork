@@ -132,13 +132,26 @@ def mediapipe_jni_binary(name, deps, uses_explicit_exports = False, shared_lib_n
             "-fdata-sections",
             "-fstack-protector",
         ],
-        linkopts = [
-            "-Wl,-soname=lib" + name + ".so",
-            "-Wl,--no-undefined",
-            "-Wl,--strip-all",
-            "-Wl,--gc-sections",
-            "-Wl,-z,max-page-size=16384",
-        ] + extra_linkopts,
+        linkopts = select({
+            "@platforms//os:macos": [
+                "-Wl,-install_name,lib" + name + ".so",
+                "-Wl,-dead_strip",
+            ],
+            "@platforms//os:linux": [
+                "-Wl,-soname=lib" + name + ".so",
+                "-Wl,--no-undefined",
+                "-Wl,--strip-all",
+                "-Wl,--gc-sections",
+                "-Wl,-z,max-page-size=16384",
+            ],
+            "//conditions:default": [
+                "-Wl,-soname=lib" + name + ".so",
+                "-Wl,--no-undefined",
+                "-Wl,--strip-all",
+                "-Wl,--gc-sections",
+                "-Wl,-z,max-page-size=16384",
+            ],
+        }) + extra_linkopts,
         linkshared = 1,
         deps = deps + [
             "//mediapipe/tasks/java:version_script.lds",
