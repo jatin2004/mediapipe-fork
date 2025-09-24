@@ -42,11 +42,7 @@ class JvmThread {
       case JNI_EDETACHED:
         ABSL_LOG(INFO) << "GetEnv: not attached";
         if (jvm_->AttachCurrentThread(
-#ifdef __ANDROID__
-                &jni_env_,
-#else
                 reinterpret_cast<void**>(&jni_env_),
-#endif  // __ANDROID__
                 nullptr) != 0) {
           ABSL_LOG(ERROR) << "Failed to attach to java thread.";
           break;

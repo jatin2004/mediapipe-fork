@@ -915,3 +915,4 @@ android_ndk_repository(
     api_level = 21,
     path = "/Users/JTELANG/Library/Android/sdk/ndk/29.0.14033849"
 )
+bind(name = "android/crosstool", actual = "@androidndk//:toolchain")
