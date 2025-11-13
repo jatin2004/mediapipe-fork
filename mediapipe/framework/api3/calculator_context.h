@@ -17,9 +17,10 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 
+#include "absl/log/absl_check.h"
 #include "absl/log/absl_log.h"
-#include "absl/meta/type_traits.h"
 #include "mediapipe/framework/api3/contract.h"
 #include "mediapipe/framework/api3/internal/contract_fields.h"
 #include "mediapipe/framework/api3/internal/contract_to_tuple.h"
@@ -146,26 +147,13 @@ class Input<ContextSpecializer, PayloadT>
   // Returns the packet for this particular input or empty packet if it's
   // missing.
   mediapipe::api3::Packet<PayloadT> Packet() const {
-    return mediapipe::api3::Packet<PayloadT>(
+    auto maybe_packet = WrapLegacyPacket<PayloadT>(
         holder_->context->Inputs().Get(Tag(), Index()).Value());
+    // Framework guarantees correct type (PayloadT) of the Input.
+    ABSL_CHECK_OK(maybe_packet);
+    return std::move(maybe_packet).value();
   }
 };
-
-namespace internal {
-
-template <class... F>
-struct Overload : F... {
-  using F::operator()...;
-};
-template <class... F>
-explicit Overload(F...) -> Overload<F...>;
-
-template <class T, class... U>
-struct First {
-  using type = T;
-};
-
-}  // namespace internal
 
 template <typename... PayloadTs>
 class Input<ContextSpecializer, OneOf<PayloadTs...>>
@@ -195,18 +183,33 @@ class Input<ContextSpecializer, OneOf<PayloadTs...>>
         .ok();
   }
 
-  // Returns the payload of the packet for this particular input.
+  // Returns the payload of the requested type for this particular input.
   //
   // NOTE: Dies if input packet is missing or of the wrong type. Input must be
   //   checked before accessing the payload, e.g. `RET_CHECK(cc.input.Has<T>())`
   template <typename T>
   const T& GetOrDie() const {
     static_assert((std::is_same_v<T, PayloadTs> || ...),
-                  "Stream type must be one of the types in OneOf");
+                  "Requested type must be one of the types in OneOf");
     return holder_->context->Inputs()
         .Get(Tag(), Index())
         .Value()
         .template Get<T>();
+  }
+
+  // Returns the packet of the requested type for this particular input.
+  //
+  // NOTE: Dies if input packet is missing or of the wrong type. Input must be
+  //   checked before accessing the packet, e.g. `cc.input.Has<T>()`.
+  template <typename T>
+  mediapipe::api3::Packet<T> PacketOrDie() const {
+    static_assert((std::is_same_v<T, PayloadTs> || ...),
+                  "Requested packet type must be one of the types in OneOf");
+    auto maybe_packet = WrapLegacyPacket<T>(
+        holder_->context->Inputs().Get(Tag(), Index()).Value());
+    // User is required to supply the correct T.
+    ABSL_CHECK_OK(maybe_packet);
+    return std::move(maybe_packet).value();
   }
 
   // Visits the value in the input with the given visitor lambdas.
@@ -222,39 +225,48 @@ class Input<ContextSpecializer, OneOf<PayloadTs...>>
   //     [&](const TypeB& b) { ... }
   //   );
   // ```
-  template <class... F>
-  auto VisitOrDie(const F&... visitors) const {
-    // Check that the number of functors matches the number of types.
-    static_assert(sizeof...(F) == sizeof...(PayloadTs),
-                  "The number of provided visitors must match the number of "
-                  "types in the OneOf");
-    // Check that the overload set `f` is callable with each type in PayloadTs.
-    static_assert(
-        (std::is_invocable_v<decltype(visitors), const PayloadTs&> && ...),
-        "The provided visitors must be able to handle all types in the OneOf "
-        "in the same order as types listed in the OneOf");
+  template <int&... DoNotSpecify, class... F,
+            std::enable_if_t<(sizeof...(F) > 1), bool> = true>
+  auto VisitOrDie(F&&... visitors) const;
 
-    auto f = internal::Overload{visitors...};
-    using FirstT = typename internal::First<PayloadTs...>::type;
-    using ResultType = absl::result_of_t<decltype(f)(const FirstT&)>;
-    static_assert(
-        (std::is_same_v<ResultType,
-                        absl::result_of_t<decltype(f)(const PayloadTs&)>> &&
-         ...),
-        "All visitor overloads must have the same return type");
-    return Invoke<decltype(f), PayloadTs...>(f);
-  }
+  // Visits the value in the input with the given visitor lambda.
+  // There must be a single visitor provided that must be callable with all
+  // types in PayloadTs.
+  //
+  // NOTE: Dies if input packet is missing, input must be checked before
+  //   accessing the payload, e.g. `RET_CHECK(cc.input)`
+  //
+  // Example:
+  // ```
+  //   input.VisitOrDie(
+  //     absl::Overload(
+  //       [&](const TypeA& a) { ... },
+  //       // Fallback.
+  //       [&](const auto& b) { ... })
+  //   );
+  // ```
+  template <int&... DoNotSpecify, class Visitor>
+  auto VisitOrDie(Visitor&& visitor) const;
 
- private:
-  template <class F, class U>
-  auto Invoke(const F& f) const {
-    return f(this->GetOrDie<U>());
-  }
-
-  template <class F, class U, class V, class... W>
-  auto Invoke(const F& f) const {
-    return this->Has<U>() ? f(this->GetOrDie<U>()) : Invoke<F, V, W...>(f);
-  }
+  // Visits the value in the input with the given visitor lambda, passing it
+  // as `Packet<T>` rather than `const T&`.
+  // There must be a single visitor provided that must be callable with all
+  // `Packet<PayloadTs>` types.
+  //
+  // NOTE: Dies if input packet is missing, input must be checked before
+  //   accessing the payload, e.g. `RET_CHECK(cc.input)`
+  //
+  // Example:
+  // ```
+  //   input.VisitAsPacketOrDie(
+  //     absl::Overload(
+  //       [&](Packet<TypeA> a) { ... },
+  //       // Fallback.
+  //       [&]<typename T>(Packet<T> b) { ... })
+  //   );
+  // ```
+  template <int&... DoNotSpecify, class Visitor>
+  auto VisitAsPacketOrDie(Visitor&& visitor) const;
 };
 
 template <typename PayloadT>
@@ -282,8 +294,11 @@ class SideInput<ContextSpecializer, PayloadT>
   }
 
   mediapipe::api3::Packet<PayloadT> Packet() const {
-    return mediapipe::api3::Packet<PayloadT>(
+    auto maybe_packet = WrapLegacyPacket<PayloadT>(
         holder_->context->InputSidePackets().Get(Tag(), Index()));
+    // Framework guarantees correct type (PayloadT) of the side input.
+    ABSL_CHECK_OK(maybe_packet);
+    return std::move(maybe_packet).value();
   }
 };
 
@@ -385,6 +400,115 @@ class Options<ContextSpecializer, ProtoT> {
   // Not owned, set by the framework.
   internal_port::CalculatorContextHolder* holder_ = nullptr;
 };
+
+///////////////////////// Implementation details below /////////////////////////
+
+namespace internal {
+
+template <class... F>
+struct Overload : F... {
+  using F::operator()...;
+};
+template <class... F>
+explicit Overload(F...) -> Overload<F...>;
+
+template <class T, class... U>
+struct First {
+  using type = T;
+};
+
+template <typename T, int&... DoNotSpecify, typename F>
+auto VisitPacketOrDie(F&& visitor, const mediapipe::Packet& packet) {
+  return std::forward<F>(visitor)(packet.Get<T>());
+}
+
+template <typename T, typename U, typename... Rest, int&... DoNotSpecify,
+          typename F>
+auto VisitPacketOrDie(F&& visitor, const mediapipe::Packet& packet) {
+  if (packet.ValidateAsType<T>().ok()) {
+    return std::forward<F>(visitor)(packet.Get<T>());
+  } else {
+    return VisitPacketOrDie<U, Rest...>(std::forward<F>(visitor), packet);
+  }
+}
+
+template <typename T, int&... DoNotSpecify, typename F>
+auto VisitPacketAsPacketOrDie(F&& visitor, const mediapipe::Packet& packet) {
+  ABSL_CHECK_OK(packet.ValidateAsType<T>());
+  return std::forward<F>(visitor)(WrapLegacyPacket<T>(packet).value());
+}
+
+template <typename T, typename U, typename... Rest, int&... DoNotSpecify,
+          typename F>
+auto VisitPacketAsPacketOrDie(F&& visitor, const mediapipe::Packet& packet) {
+  if (packet.ValidateAsType<T>().ok()) {
+    return std::forward<F>(visitor)(WrapLegacyPacket<T>(packet).value());
+  } else {
+    return VisitPacketAsPacketOrDie<U, Rest...>(std::forward<F>(visitor),
+                                                packet);
+  }
+}
+
+}  // namespace internal
+
+template <typename... PayloadTs>
+template <int&... DoNotSpecify, class... F,
+          std::enable_if_t<(sizeof...(F) > 1), bool>>
+auto Input<ContextSpecializer, OneOf<PayloadTs...>>::VisitOrDie(
+    F&&... visitors) const {
+  // Check that the number of functors matches the number of types.
+  static_assert(sizeof...(F) == sizeof...(PayloadTs),
+                "The number of provided visitors must match the number of "
+                "types in the OneOf");
+  // Check that the overload set `f` is callable with each type in PayloadTs.
+  static_assert(
+      (std::is_invocable_v<decltype(visitors), const PayloadTs&> && ...),
+      "The provided visitors must be able to handle all types in the OneOf "
+      "in the same order as types listed in the OneOf");
+  return VisitOrDie(internal::Overload{std::forward<F>(visitors)...});
+}
+
+template <typename... PayloadTs>
+template <int&... DoNotSpecify, class Visitor>
+auto Input<ContextSpecializer, OneOf<PayloadTs...>>::VisitOrDie(
+    Visitor&& visitor) const {
+  // Check that the visitor is callable with each type in PayloadTs.
+  static_assert(
+      (std::is_invocable_v<Visitor, const PayloadTs&> && ...),
+      "The provided visitor must be able to handle all types in the OneOf");
+
+  using FirstT = typename internal::First<PayloadTs...>::type;
+  using ResultType = std::invoke_result_t<Visitor, const FirstT&>;
+  static_assert(
+      (std::is_same_v<ResultType,
+                      std::invoke_result_t<Visitor, const PayloadTs&>> &&
+       ...),
+      "All visitor overloads must have the same return type");
+  return internal::VisitPacketOrDie<PayloadTs...>(
+      std::forward<Visitor>(visitor),
+      holder_->context->Inputs().Get(Tag(), Index()).Value());
+}
+
+template <typename... PayloadTs>
+template <int&... DoNotSpecify, class Visitor>
+auto Input<ContextSpecializer, OneOf<PayloadTs...>>::VisitAsPacketOrDie(
+    Visitor&& visitor) const {
+  // Check that the visitor is callable with each type in PayloadTs.
+  static_assert(
+      (std::is_invocable_v<Visitor, Packet<PayloadTs>> && ...),
+      "The provided visitor must be able to handle all types in the OneOf");
+
+  using FirstT = typename internal::First<PayloadTs...>::type;
+  using ResultType = std::invoke_result_t<Visitor, Packet<FirstT>>;
+  static_assert(
+      (std::is_same_v<ResultType,
+                      std::invoke_result_t<Visitor, Packet<PayloadTs>>> &&
+       ...),
+      "All visitor overloads must have the same return type");
+  return internal::VisitPacketAsPacketOrDie<PayloadTs...>(
+      std::forward<Visitor>(visitor),
+      holder_->context->Inputs().Get(Tag(), Index()).Value());
+}
 
 }  // namespace mediapipe::api3
 

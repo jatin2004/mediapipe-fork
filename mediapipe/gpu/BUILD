@@ -365,7 +365,7 @@ cc_library(
         ":disable_gpu": [],
     }) + select({
         "//conditions:default": [],
-        "//mediapipe:ios": [
+        "//mediapipe:apple": [
             "//mediapipe/objc:util",
         ],
     }),
@@ -670,6 +670,34 @@ cc_library(
         "@google_toolbox_for_mac//:GTM_Defines",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "gl_app_texture_support",
+    srcs = ["gl_app_texture_support.cc"],
+    hdrs = ["gl_app_texture_support.h"],
+    copts = select({
+        "//conditions:default": [],
+        "//mediapipe:macos": [
+            "-Wno-shorten-64-to-32",
+        ],
+    }),
+    deps = [
+        ":gl_base",
+        ":gl_context",
+        ":gl_texture_buffer",
+        ":gpu_buffer",
+        ":gpu_buffer_format",
+        ":gpu_shared_data_header",
+        ":multi_pool",
+        "//mediapipe/framework:calculator_framework",
+        "//mediapipe/framework:calculator_graph",
+        "//mediapipe/framework:executor",
+        "//mediapipe/framework/port:ret_check",
+        "//mediapipe/framework/port:status",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
 )
 
 mediapipe_proto_library(
@@ -1037,6 +1065,7 @@ cc_library(
         ":gpu_service",
         ":gpu_shared_data_internal",
         ":graph_support",
+        "//mediapipe/framework/port",
         "//mediapipe/objc:mediapipe_framework_ios",
         "//third_party/apple_frameworks:CoreVideo",
         "//third_party/apple_frameworks:Metal",
@@ -1096,19 +1125,58 @@ cc_library(
 cc_library(
     name = "gpu_buffer_to_image_frame_calculator",
     srcs = ["gpu_buffer_to_image_frame_calculator.cc"],
+    hdrs = ["gpu_buffer_to_image_frame_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":gl_calculator_helper",
+        ":gpu_buffer",
+        ":gpu_buffer_format",
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework:timestamp",
+        "//mediapipe/framework/api3:calculator",
+        "//mediapipe/framework/api3:calculator_context",
+        "//mediapipe/framework/api3:calculator_contract",
+        "//mediapipe/framework/api3:contract",
+        "//mediapipe/framework/api3:node",
+        "//mediapipe/framework/api3:one_of",
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:status",
+        "@com_google_absl//absl/status",
     ] + select({
         "//conditions:default": [],
         "//mediapipe:apple": ["//mediapipe/objc:util"],
     }),
     alwayslink = 1,
+)
+
+mediapipe_cc_test(
+    name = "gpu_buffer_to_image_frame_calculator_test",
+    size = "small",
+    timeout = "long",
+    srcs = ["gpu_buffer_to_image_frame_calculator_test.cc"],
+    tags = [
+        "noasan",  # TODO: Remove noasan tag when SwiftShader supports sanitizers
+    ],
+    test_host = None,
+    deps = [
+        ":gl_texture_util",
+        ":gl_texture_view",
+        ":gpu_buffer",
+        ":gpu_buffer_format",
+        ":gpu_buffer_to_image_frame_calculator",
+        ":gpu_service",
+        ":gpu_test_base",
+        "//mediapipe/framework/api3:function_runner",
+        "//mediapipe/framework/api3:graph",
+        "//mediapipe/framework/api3:packet",
+        "//mediapipe/framework/api3:stream",
+        "//mediapipe/framework/formats:image_frame",
+        "//mediapipe/framework/port:gtest_main",
+        "//mediapipe/framework/tool:test_util",
+        "//mediapipe/util:image_test_utils",
+        "@com_google_absl//absl/status",
+    ],
 )
 
 cc_library(

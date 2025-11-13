@@ -16,7 +16,6 @@
 import ctypes
 
 from mediapipe.tasks.python.components.containers import category_c
-from mediapipe.tasks.python.components.containers import detections as detections_lib
 from mediapipe.tasks.python.components.containers import keypoint_c
 from mediapipe.tasks.python.components.containers import rect_c
 
@@ -40,29 +39,3 @@ class DetectionResultC(ctypes.Structure):
       ('detections', ctypes.POINTER(DetectionC)),
       ('detections_count', ctypes.c_uint32),
   ]
-
-  def to_python_detection_result(self) -> detections_lib.DetectionResult:
-    """Converts a ctypes DetectionResultC to a Python DetectionResult object."""
-    py_detections = []
-    for i in range(self.detections_count):
-      c_detection = self.detections[i]
-      py_categories = []
-      for j in range(c_detection.categories_count):
-        c_category = c_detection.categories[j]
-        py_categories.append(c_category.to_python_category())
-
-      py_keypoints = []
-      for j in range(c_detection.keypoints_count):
-        c_keypoint = c_detection.keypoints[j]
-        py_keypoints.append(c_keypoint.to_python_normalized_keypoint())
-
-      py_bounding_box = c_detection.bounding_box.to_python_bounding_box()
-      py_detections.append(
-          detections_lib.Detection(
-              bounding_box=py_bounding_box,
-              categories=py_categories,
-              keypoints=py_keypoints if py_keypoints else None,
-          )
-      )
-
-    return detections_lib.DetectionResult(detections=py_detections)

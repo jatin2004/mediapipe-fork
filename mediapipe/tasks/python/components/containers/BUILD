@@ -21,13 +21,23 @@ licenses(["notice"])
 py_library(
     name = "audio_data",
     srcs = ["audio_data.py"],
-    deps = ["@mediapipe_pip_deps_numpy//:pkg"],
+    deps = [
+        ":audio_data_c",
+        "//mediapipe/tasks/python/core:optional_dependencies",
+        "@mediapipe_pip_deps_numpy//:pkg",
+    ],
+)
+
+py_library(
+    name = "audio_data_c",
+    srcs = ["audio_data_c.py"],
 )
 
 py_library(
     name = "bounding_box",
     srcs = ["bounding_box.py"],
     deps = [
+        ":rect_c",
         "//mediapipe/framework/formats:location_data_py_pb2",
         "//mediapipe/tasks/python/core:optional_dependencies",
     ],
@@ -46,7 +56,6 @@ py_library(
 py_library(
     name = "rect_c",
     srcs = ["rect_c.py"],
-    deps = [":bounding_box"],
 )
 
 py_library(
@@ -82,6 +91,7 @@ py_library(
     name = "category",
     srcs = ["category.py"],
     deps = [
+        ":category_c",
         "//mediapipe/framework/formats:classification_py_pb2",
         "//mediapipe/tasks/python/core:optional_dependencies",
     ],
@@ -90,13 +100,13 @@ py_library(
 py_library(
     name = "category_c",
     srcs = ["category_c.py"],
-    deps = [":category"],
 )
 
 py_library(
     name = "keypoint",
     srcs = ["keypoint.py"],
     deps = [
+        ":keypoint_c",
         "//mediapipe/framework/formats:location_data_py_pb2",
         "//mediapipe/tasks/python/core:optional_dependencies",
     ],
@@ -105,9 +115,6 @@ py_library(
 py_library(
     name = "keypoint_c",
     srcs = ["keypoint_c.py"],
-    deps = [
-        ":keypoint",
-    ],
 )
 
 py_library(
@@ -116,6 +123,8 @@ py_library(
     deps = [
         ":bounding_box",
         ":category",
+        ":category_c",
+        ":detections_c",
         ":keypoint",
         "//mediapipe/framework/formats:detection_py_pb2",
         "//mediapipe/framework/formats:location_data_py_pb2",
@@ -127,10 +136,7 @@ py_library(
     name = "detections_c",
     srcs = ["detections_c.py"],
     deps = [
-        ":category",
         ":category_c",
-        ":detections",
-        ":keypoint",
         ":keypoint_c",
         ":rect_c",
     ],
@@ -141,6 +147,7 @@ py_library(
     srcs = ["classification_result.py"],
     deps = [
         ":category",
+        ":classification_result_c",
         "//mediapipe/framework/formats:classification_py_pb2",
         "//mediapipe/tasks/cc/components/containers/proto:classifications_py_pb2",
         "//mediapipe/tasks/python/core:optional_dependencies",
@@ -151,9 +158,8 @@ py_library(
     name = "classification_result_c",
     srcs = ["classification_result_c.py"],
     deps = [
-        ":category",
         ":category_c",
-        ":classification_result",
+        "//mediapipe/tasks/python/core:optional_dependencies",
     ],
 )
 
@@ -172,6 +178,15 @@ py_library(
     srcs = ["embedding_result_c.py"],
     deps = [
         ":embedding_result",
+        "@mediapipe_pip_deps_numpy//:pkg",
+    ],
+)
+
+py_library(
+    name = "matrix_c",
+    srcs = ["matrix_c.py"],
+    deps = [
+        "//mediapipe/tasks/python/core:optional_dependencies",
         "@mediapipe_pip_deps_numpy//:pkg",
     ],
 )

@@ -1,4 +1,4 @@
-# Copyright 2025 The MediaPipe Authors.
+# Copyright 2022 The MediaPipe Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,21 +13,24 @@
 # limitations under the License.
 
 # Placeholder: load py_test
+# Placeholder for internal Python strict test compatibility macro.
 
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
 py_test(
-    name = "classification_result_test",
-    srcs = ["classification_result_test.py"],
+    name = "audio_data_test",
+    srcs = ["audio_data_test.py"],
+    data = [
+        "//mediapipe/tasks/testdata/audio:test_audio_clips",
+    ],
     deps = [
-        "//mediapipe/tasks/python/components/containers:category",
-        "//mediapipe/tasks/python/components/containers:category_c",
-        "//mediapipe/tasks/python/components/containers:classification_result",
-        "//mediapipe/tasks/python/components/containers:classification_result_c",
-        "//testing/pybase",
+        "//mediapipe/tasks/python/components/containers:audio_data",
+        "//mediapipe/tasks/python/components/containers:audio_data_c",
+        "//mediapipe/tasks/python/test:test_utils",
         "@mediapipe_pip_deps_absl_py//:pkg",
+        "@mediapipe_pip_deps_numpy//:pkg",
     ],
 )
 
@@ -37,6 +40,7 @@ py_test(
     deps = [
         "//mediapipe/tasks/python/components/containers:category",
         "//mediapipe/tasks/python/components/containers:category_c",
+        "//third_party/py/immutabledict",
         "@mediapipe_pip_deps_absl_py//:pkg",
     ],
 )
@@ -48,6 +52,64 @@ py_test(
         "//mediapipe/tasks/python/components/containers:landmark",
         "//mediapipe/tasks/python/components/containers:landmark_c",
         "//testing/pybase",
+        "@mediapipe_pip_deps_absl_py//:pkg",
+    ],
+)
+
+py_test(
+    name = "matrix_test",
+    srcs = ["matrix_test.py"],
+    deps = [
+        "//mediapipe/tasks/python/components/containers:matrix_c",
+        "@mediapipe_pip_deps_numpy//:pkg",
+    ],
+)
+
+py_test(
+    name = "detections_test",
+    srcs = ["detections_test.py"],
+    deps = [
+        "//mediapipe/tasks/python/components/containers:bounding_box",
+        "//mediapipe/tasks/python/components/containers:category",
+        "//mediapipe/tasks/python/components/containers:category_c",
+        "//mediapipe/tasks/python/components/containers:detections",
+        "//mediapipe/tasks/python/components/containers:detections_c",
+        "//mediapipe/tasks/python/components/containers:keypoint",
+        "//mediapipe/tasks/python/components/containers:keypoint_c",
+        "//mediapipe/tasks/python/components/containers:rect_c",
+        "//third_party/py/immutabledict",
+        "@mediapipe_pip_deps_absl_py//:pkg",
+    ],
+)
+
+py_test(
+    name = "bounding_box_test",
+    srcs = ["bounding_box_test.py"],
+    deps = [
+        "//mediapipe/tasks/python/components/containers:bounding_box",
+        "//mediapipe/tasks/python/components/containers:rect_c",
+        "@mediapipe_pip_deps_absl_py//:pkg",
+    ],
+)
+
+py_test(
+    name = "classification_result_test",
+    srcs = ["classification_result_test.py"],
+    deps = [
+        "//mediapipe/tasks/python/components/containers:category",
+        "//mediapipe/tasks/python/components/containers:category_c",
+        "//mediapipe/tasks/python/components/containers:classification_result",
+        "//mediapipe/tasks/python/components/containers:classification_result_c",
+        "@mediapipe_pip_deps_absl_py//:pkg",
+    ],
+)
+
+py_test(
+    name = "keypoint_test",
+    srcs = ["keypoint_test.py"],
+    deps = [
+        "//mediapipe/tasks/python/components/containers:keypoint",
+        "//mediapipe/tasks/python/components/containers:keypoint_c",
         "@mediapipe_pip_deps_absl_py//:pkg",
     ],
 )

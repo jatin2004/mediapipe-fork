@@ -176,7 +176,7 @@ class FaceDetectorOptions:
           logging.error('Face detector error: %s', error_msg)
           return
 
-        py_result = result.contents.to_python_detection_result()
+        py_result = FaceDetectorResult.from_ctypes(result.contents)
         py_image = image_module.Image.create_from_ctypes(image, lib)
         if self.result_callback:
           self.result_callback(py_result, py_image, timestamp_ms)
@@ -184,10 +184,7 @@ class FaceDetectorOptions:
       # Keep callback from getting garbage collected.
       self._result_callback_c = c_callback
 
-    base_options_c = base_options_c_module.create_base_options_c(
-        self.base_options
-    )
-
+    base_options_c = self.base_options.to_ctypes()
     return FaceDetectorOptionsC(
         base_options=base_options_c,
         running_mode=self.running_mode.ctype,
@@ -320,7 +317,7 @@ class FaceDetector:
         status, error_msg_ptr, 'Failed to detect faces for image.'
     )
 
-    py_result = c_result.to_python_detection_result()
+    py_result = FaceDetectorResult.from_ctypes(c_result)
     self._lib.face_detector_close_result(ctypes.byref(c_result))
     return py_result
 
@@ -379,7 +376,7 @@ class FaceDetector:
         status, error_msg_ptr, 'Failed to detect faces from video.'
     )
 
-    py_result = c_result.to_python_detection_result()
+    py_result = FaceDetectorResult.from_ctypes(c_result)
     self._lib.face_detector_close_result(ctypes.byref(c_result))
     return py_result
 
@@ -448,11 +445,11 @@ class FaceDetector:
     """Shuts down the MediaPipe task instance."""
     if self._handle:
       error_msg_ptr = ctypes.c_char_p()
-      ret_code = self._lib.face_detector_close(
+      return_code = self._lib.face_detector_close(
           self._handle, ctypes.byref(error_msg_ptr)
       )
       self._handle_status(
-          ret_code, error_msg_ptr, 'Failed to close FaceDetector object.'
+          return_code, error_msg_ptr, 'Failed to close FaceDetector object.'
       )
       self._handle = None
 
